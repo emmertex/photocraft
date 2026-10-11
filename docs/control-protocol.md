@@ -91,6 +91,39 @@ The transport is `apps/photocraft/src/control_server.rs`, and the handlers are i
 - `ui.focus`: bring the main window to the front
 - `app.open {path}` / `app.save {path?, flatten?, tgaBits?, ddsCompression?, ddsMipmaps?}`: relative file I/O through the configured automation roots (`app.open` reads under the read root, `app.save` writes under the write root; absolute paths, `..` and paths escaping the root are refused, and both fail closed when no root was granted). Both reply with `warnings` (import/export notes such as "adjustment layer flattened"; `[]` when none), also shown to the user in the status bar and as a notice (`notices` in `ui.inspect`); `app.open` also returns the `path` and document `name` (directory `.pcraft` — the native on-disk form — loads through the read root's capability; the single-file (zip) form takes the bytes path), `app.save` the `path` written. `app.save` without `path` writes the document back to its own file in that file's format, like File › Save: PSD, PSB, `.pcraft`, OpenRaster (when it holds the whole document), TIFF (with its layers), JPEG, PNG or WebP, keeping the bit depth, ICC profile, EXIF and XMP the file was opened with. When that would flatten layers into a flat file it fails unless `flatten: true` confirms it (`app.save {"flatten": true}`); any other format (a camera raw, GIF, a template) needs `path`. `tgaBits` (24 or 32) sets a TGA's bits per pixel: 32 writes the alpha channel (or else the transparency) as its alpha, 24 none; without it, 32 with an alpha channel or transparency, else 24. `ddsCompression` (`none`, `bc1`, `bc2` or `bc3`) and `ddsMipmaps` (bool) set a DDS texture's compression and mip chain; without them, uncompressed without mipmaps. Automation saves never show TGA, DDS or TIFF options. Automation opens and saves never fire script events. Use these two rather than `file.open`, `file.save`, `file.saveAs` or `file.saveACopy`, which the control channel refuses (see [Engine commands](#engine-commands))
 - `app.quit`
+- `app.capabilities`: `{app, version, protocol, features, events}` for callers that feature-detect instead of parsing versions. `features` lists what this build supports: `saveInPlace` (Save writes back to an opened TIFF, JPEG, PNG or WebP; `flatten: true` confirms flattening), `events` (`events.subscribe` below). Later additions append names; none is ever renamed
+- `events.subscribe {events?}`: push document events on this connection (see [Events](#events))
+
+## Events
+
+External tools that hand PhotoCraft a file (a photo manager's "Edit in", a build script, an editor
+integration in the style of `code --wait` or git's `core.editor`) need to know when the file was
+saved, to read it back, and when the user is done with it. After
+`{"id": 5, "method": "events.subscribe", "params": {"events": ["document.saved", "document.closed"]}}`
+(omit `events` for all of them) the reply `{"id": 5, "ok": true, "result": {"events": [...]}}` is
+followed, on the same connection, by one line per event. Event lines have no `id`:
+
+```json
+{"event": "document.opened", "params": {"path": "/photos/a.tif", "format": "tif", "docId": 7}}
+{"event": "document.saved",  "params": {"path": "/photos/a.tif", "format": "tif", "docId": 7}}
+{"event": "document.closed", "params": {"path": "/photos/a.tif", "format": "tif", "docId": 7}}
+```
+
+- `document.opened`: a document appeared (any open, File › New with `path: null`).
+- `document.saved`: a save wrote the document's own file (File › Save, Save As, a background save
+  once written, `app.save`); `path` is where. Copies and exports (Save a Copy, Export As, a flat
+  Save As that keeps the layered original) are not reported. Every save is reported, even one with
+  no changes.
+- `document.closed`: the document was closed; `path` is its file at that moment.
+- `format` is the path's lower-case extension (`null` without a path); `docId` is stable for the
+  document's lifetime in this run.
+
+Order per document is always opened → saved… → closed. Requests and replies keep working on a
+subscribed connection, and it has no idle read timeout (the 30-second write timeout stays: a client
+that stops reading is disconnected). One subscription per connection; closing the connection ends
+it; at most 64 at once. Events are desktop-only: `photocraft-cli serve` and MCP don't push them yet
+(MCP notifications are follow-up work; a bridge client can watch `document.saved` through a
+separate control connection).
 
 ## Engine commands
 
