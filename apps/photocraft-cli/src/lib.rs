@@ -362,7 +362,7 @@ fn run_cmds(a: &Args, out: &mut dyn Write, err: &mut dyn Write) -> R {
         .collect();
     warn_all(err, &remaining);
     if let Some(o) = a.get("--out") {
-        let r = h.save(None, Some(Path::new(o)), a.get("--format"), &opts).map_err(|e| e.to_string())?;
+        let r = h.save(None, Some(Path::new(o)), a.get("--format"), &opts, false).map_err(|e| e.to_string())?;
         let ws: Vec<String> = serde_json::from_value(r["warnings"].clone()).unwrap_or_default();
         let ws: Vec<String> = ws.into_iter().filter(|w| reported_fonts.insert(w.clone())).collect();
         warn_all(err, &ws);
@@ -503,7 +503,7 @@ fn batch(a: &Args, out: &mut dyn Write, err: &mut dyn Write) -> R {
                     return Err(format!("`{id}`: {e}"));
                 }
             }
-            let r = h.save(None, Some(&target), Some(&ext), &opts).map_err(|e| e.to_string())?;
+            let r = h.save(None, Some(&target), Some(&ext), &opts, false).map_err(|e| e.to_string())?;
             Ok(serde_json::from_value(r["warnings"].clone()).unwrap_or_default())
         })();
         match r {
