@@ -79,6 +79,7 @@ pub mod direction;
 pub mod discard_ui;
 pub mod disk_change_prompt;
 pub mod distort_ui;
+pub mod doc_events;
 pub mod doc_props_ui;
 pub mod dock;
 pub mod duplicate_layer_ui;
@@ -874,6 +875,8 @@ pub struct PhotocraftApp {
     /// A File › Save that would flatten layers into the JPEG, PNG, WebP or TIFF the document was
     /// opened from, parked behind the confirmation (see `flatten_save_ui`).
     pub(crate) flatten_save: Option<flatten_save_ui::Prompt>,
+    /// `document.opened|saved|closed` for control-channel subscribers (see `doc_events`).
+    pub doc_events: doc_events::DocEvents,
     /// Where each document was last saved or exported to through a dialog (#1826): its next Save
     /// As or export dialog starts there rather than beside the document. Session-only.
     pub(crate) save_dirs: HashMap<photocraft_doc::DocId, std::path::PathBuf>,
@@ -1034,6 +1037,7 @@ impl PhotocraftApp {
             file_dialog: None,
             tiff_options: None,
             flatten_save: None,
+            doc_events: Default::default(),
             save_dirs: HashMap::new(),
             disk_stamps: HashMap::new(),
             targa_options: None,
@@ -1876,6 +1880,7 @@ impl PhotocraftApp {
                     st.saved_revision = revision;
                     app.remember_stamp(doc, path);
                 }
+                app.doc_saved_event(doc, path);
                 // "Save Document" script events and File › Generate › Image Assets.
                 if hooks
                     && let Some(i) = app.session.active_index()
@@ -2114,6 +2119,7 @@ impl eframe::App for PhotocraftApp {
             self.checker = None;
         }
         self.drain_control(ctx);
+        self.sync_doc_events();
         native_menu::run(self, ctx);
         // Switching tools commits, also between the Type and Type Mask tools.
         if self.ui.text_edit.as_ref().is_some_and(|ed| !self.ui.tool.is_type() || ed.mask != self.ui.tool.is_type_mask()) {
