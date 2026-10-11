@@ -1361,7 +1361,7 @@ pub fn capabilities() -> Value {
 }
 
 /// `app.capabilities` → `features`.
-pub const FEATURES: &[&str] = &["saveInPlace", "events"];
+pub const FEATURES: &[&str] = &["saveInPlace", "events", "wait"];
 
 /// Snapshot of everything on screen, addressable by id.
 pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {

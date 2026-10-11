@@ -119,6 +119,7 @@ impl crate::PhotocraftApp {
     pub(crate) fn doc_saved_event(&mut self, doc: DocId, path: &str) {
         self.sync_doc_events();
         self.doc_events.saved(doc, path);
+        self.wait_saved(doc, path);
     }
 }
 

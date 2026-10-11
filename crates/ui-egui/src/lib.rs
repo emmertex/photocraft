@@ -234,6 +234,7 @@ mod variables_ui;
 pub mod vector_ui;
 pub mod view_cmds;
 pub mod vp_ui;
+pub mod wait;
 pub mod warp_preview;
 pub mod wheel_nav;
 pub mod wide_angle_ui;
@@ -877,6 +878,8 @@ pub struct PhotocraftApp {
     pub(crate) flatten_save: Option<flatten_save_ui::Prompt>,
     /// `document.opened|saved|closed` for control-channel subscribers (see `doc_events`).
     pub doc_events: doc_events::DocEvents,
+    /// Files someone waits on until they are closed (`--wait`, see `wait`).
+    pub(crate) waits: Vec<wait::Wait>,
     /// Where each document was last saved or exported to through a dialog (#1826): its next Save
     /// As or export dialog starts there rather than beside the document. Session-only.
     pub(crate) save_dirs: HashMap<photocraft_doc::DocId, std::path::PathBuf>,
@@ -1038,6 +1041,7 @@ impl PhotocraftApp {
             tiff_options: None,
             flatten_save: None,
             doc_events: Default::default(),
+            waits: Vec::new(),
             save_dirs: HashMap::new(),
             disk_stamps: HashMap::new(),
             targa_options: None,
@@ -2120,6 +2124,10 @@ impl eframe::App for PhotocraftApp {
         }
         self.drain_control(ctx);
         self.sync_doc_events();
+        // `--wait`: every waited file closed and nothing else open, so the process ends.
+        if self.tick_waits() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
         native_menu::run(self, ctx);
         // Switching tools commits, also between the Type and Type Mask tools.
         if self.ui.text_edit.as_ref().is_some_and(|ed| !self.ui.tool.is_type() || ed.mask != self.ui.tool.is_type_mask()) {
