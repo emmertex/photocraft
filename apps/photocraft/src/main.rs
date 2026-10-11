@@ -230,6 +230,10 @@ struct LaunchArgs {
     help: bool,
     /// `--version`: print the version and exit 0; parsing stops there.
     version: bool,
+    /// `--version --json`: print `app.capabilities` instead, so a launcher can feature-detect
+    /// without starting a window. Builds without it stop at `--version` and print the plain line,
+    /// so the probe is safe against every release.
+    version_json: bool,
     /// Usage errors (a bad or missing control/automation value, an unknown option); a non-empty
     /// list fails the launch with exit status 2 (issues #701, #6429, #6431).
     errors: Vec<String>,
@@ -315,6 +319,7 @@ fn parse_launch_args(args: impl Iterator<Item = std::ffi::OsString>, mut out: La
             Some("--new-instance") => out.new_instance = true,
             Some("--version") => {
                 out.version = true;
+                out.version_json = args.next().is_some_and(|a| a == "--json");
                 break;
             }
             // Old macOS passes a process serial number when launched from Finder.
@@ -468,6 +473,10 @@ fn main() -> eframe::Result {
         print_stdout(USAGE);
         return Ok(());
     }
+    if launch.version_json {
+        print_stdout(&format!("{}\n", photocraft_ui_egui::control::capabilities()));
+        return Ok(());
+    }
     if launch.version {
         print_stdout(&format!("photocraft {}\n", photocraft_engine::build_info::long_version()));
         return Ok(());
@@ -502,6 +511,7 @@ fn main() -> eframe::Result {
         in_window_menus,
         help: _,
         version: _,
+        version_json: _,
         errors: _,
     } = launch;
 

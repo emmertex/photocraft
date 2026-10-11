@@ -125,6 +125,11 @@ it; at most 64 at once. Events are desktop-only: `photocraft-cli serve` and MCP 
 (MCP notifications are follow-up work; a bridge client can watch `document.saved` through a
 separate control connection).
 
+Without a connection, `photocraft --version --json` prints the same `app.capabilities` object
+and exits without opening a window. Builds that predate it print the plain `photocraft <version>`
+line for that command line, so a launcher can run it against any release and treat a non-JSON
+answer as "no features".
+
 ## Engine commands
 
 Change the UI language without restarting with `prefs.set`:
