@@ -1175,7 +1175,13 @@ fn humanize(key: &str) -> String {
             s.push(ch);
         }
     }
-    s.replace("Psd", "PSD").replace("Gpu", "GPU").replace("Ui ", "UI ").replace("Mb", "(MB)").replace("Exif", "EXIF").replace("Hud", "HUD")
+    s.replace("Psd", "PSD")
+        .replace("Gpu", "GPU")
+        .replace("Ui ", "UI ")
+        .replace("Mb", "(MB)")
+        .replace("Exif", "EXIF")
+        .replace("Hud", "HUD")
+        .replace(" tiff", " TIFF")
 }
 
 fn choice_label(v: &str) -> String {
@@ -2640,6 +2646,8 @@ mod tests {
         assert!(export_field_visible(&obj, "webpQuality"));
         assert_eq!(humanize("webpLossless"), "Lossless");
         assert_eq!(humanize("webpQuality"), "Quality");
+        assert_eq!(humanize("saveLayersInTiff"), "Save layers in TIFF");
+        assert_eq!(humanize("askBeforeSavingLayeredTiff"), "Ask before saving layered TIFF");
     }
 
     #[test]
