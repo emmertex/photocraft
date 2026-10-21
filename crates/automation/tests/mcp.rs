@@ -603,6 +603,21 @@ async fn save_without_path_never_flattens_over_the_opened_file_unconfirmed() {
     assert_eq!(photocraft_codecs::detect(&std::fs::read(dir.join("seed.jpg")).unwrap()), Some(photocraft_codecs::Format::Jpeg));
     std::fs::write(dir.join("seed.jpg"), &jpg).unwrap();
 
+    // The same test as the desktop: a lone layer with reduced opacity or a mask is not a plain
+    // image, so writing it back flattens and needs confirming.
+    for edit in [json!({"id": "layer.setProps", "params": {"opacity": 0.5}}), json!({"id": "layer.layerMask.revealAll", "params": {}})] {
+        json_of(&call(&client, "doc_open", json!({"path": "seed.png"})).await);
+        json_of(&call(&client, "command_run", edit.clone()).await);
+        let r = call(&client, "doc_save", json!({})).await;
+        assert!(unconfirmed(&r), "{edit}: {}", text(&r));
+        assert_eq!(std::fs::read(dir.join("seed.png")).unwrap(), png, "{edit}");
+    }
+    // A lone unlocked plain layer is still a plain image: written back without asking.
+    json_of(&call(&client, "doc_open", json!({"path": "seed.png"})).await);
+    json_of(&call(&client, "command_run", json!({"id": "layer.new.layerFromBackground", "params": {}})).await);
+    assert_eq!(json_of(&call(&client, "doc_save", json!({})).await)["path"], "seed.png");
+    std::fs::write(dir.join("seed.png"), &png).unwrap();
+
     // An explicit path, even the opened file's own, still writes and reports what was lost.
     let r = json_of(&call(&client, "doc_save", json!({"path": "seed.jpg"})).await);
     assert!(r["warnings"].to_string().contains("lossy"), "{r}");

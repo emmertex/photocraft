@@ -1112,9 +1112,8 @@ fn save_asks_before_replacing_a_file_another_app_changed() {
 }
 
 #[test]
-fn save_of_a_flat_file_asks_after_the_dialog_when_another_app_changed_it() {
+fn save_of_a_flat_file_asks_first_when_another_app_changed_it() {
     let ctx = egui::Context::default();
-    // Lowercase: the Save dialog lowercases a typed extension by default.
     let path = "/pics/My image.jpg";
     let (mut app, open, written) = jpeg_app(None, false);
     let disk = on_disk(&mut app);
@@ -1122,10 +1121,10 @@ fn save_of_a_flat_file_asks_after_the_dialog_when_another_app_changed_it() {
     app.opened_from(path);
     app.run("image.adjustments.invert", json!({})).unwrap();
     changed_by_another_app(&disk, path);
+    // A plain image is written back to its own JPEG without a dialog, but not over a change
+    // another app made.
     menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
-    app.poll_file_dialog(&ctx, None);
-    answer(&open, Some(FileDialogAnswer::SaveTo(path.into())));
-    app.poll_file_dialog(&ctx, None);
+    assert!(!app.file_dialog_open() && open.borrow().is_empty());
     assert!(written.borrow().is_empty(), "the changed file is not replaced before the answer");
     let id = disk_prompt(&app).expect("Save asks first").id;
     crate::dialogs::confirm(&mut app, id).unwrap();

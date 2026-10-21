@@ -242,7 +242,10 @@ impl Headless {
                 let own = file_cmds::extension(p);
                 let written = format.map(|f| f.trim_start_matches('.').to_ascii_lowercase()).or_else(|| own.clone());
                 let kind = file_cmds::in_place_save(p).filter(|_| written == own);
+                // A TIFF keeps layers beyond a lone locked Background; a JPEG, PNG or WebP keeps
+                // only a plain raster, the desktop's test (`in_place_plan`).
                 let layers = file_cmds::tiff_would_write_layers(&doc);
+                let flattens = file_cmds::plain_raster(&doc).is_none();
                 match kind {
                     None => {
                         return Err(AutomationError::BadRequest(format!(
@@ -256,7 +259,7 @@ impl Headless {
                             "pass `path`: `{p}` can't hold the whole document, so it was left unchanged{why}"
                         )));
                     }
-                    Some(file_cmds::InPlaceSave::Flat) if layers && !flatten => {
+                    Some(file_cmds::InPlaceSave::Flat) if flattens && !flatten => {
                         return Err(AutomationError::BadRequest(format!(
                             "saving `{p}` flattens the document's layers into it: pass `flatten: true` to confirm, or `path` to save elsewhere"
                         )));

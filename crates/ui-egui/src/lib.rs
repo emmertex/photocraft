@@ -383,28 +383,7 @@ pub(crate) enum InPlacePlan {
     SaveAs,
 }
 
-/// The document's lone layer when it is a plain raster a flat file keeps: visible, at full
-/// opacity, in Normal mode, with no masks, effects or blending restrictions (#2234).
-pub(crate) fn plain_raster(doc: &Document) -> Option<&photocraft_doc::Layer> {
-    match doc.layers.as_slice() {
-        [layer]
-            if matches!(layer.content, photocraft_doc::LayerContent::Raster(_))
-                && layer.visible
-                && layer.opacity >= 1.0
-                && layer.fill_opacity >= 1.0
-                && layer.mask.is_none()
-                && layer.vector_mask.is_none()
-                && layer.effects.items.is_empty()
-                && layer.effects.psd_raw.is_none()
-                && matches!(layer.blend, photocraft_color::BlendMode::Normal | photocraft_color::BlendMode::PassThrough)
-                && photocraft_compose::channel_weights(layer, doc.mode).is_none()
-                && !photocraft_compose::blend_if_active(layer, doc.mode) =>
-        {
-            Some(layer)
-        }
-        _ => None,
-    }
-}
+pub(crate) use photocraft_engine::file_cmds::plain_raster;
 
 /// Encode a document: (file bytes, warnings about anything approximated or dropped).
 pub type ExportFn = Box<dyn Fn(&Document, &str, &ExportSettings) -> Result<(Vec<u8>, Vec<String>), String>>;

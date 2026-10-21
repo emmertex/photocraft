@@ -131,6 +131,31 @@ pub fn tiff_would_write_layers(doc: &Document) -> bool {
     photocraft_io::tiff_layers::would_write_layers(doc)
 }
 
+/// The document's lone layer when it is a plain raster a flat file keeps: visible, at full
+/// opacity, in Normal mode, with no masks, effects or blending restrictions (#2234). File › Save
+/// and the automation saves both ask this before writing a JPEG, PNG or WebP back without
+/// flattening.
+pub fn plain_raster(doc: &Document) -> Option<&Layer> {
+    match doc.layers.as_slice() {
+        [layer]
+            if matches!(layer.content, photocraft_doc::LayerContent::Raster(_))
+                && layer.visible
+                && layer.opacity >= 1.0
+                && layer.fill_opacity >= 1.0
+                && layer.mask.is_none()
+                && layer.vector_mask.is_none()
+                && layer.effects.items.is_empty()
+                && layer.effects.psd_raw.is_none()
+                && matches!(layer.blend, photocraft_color::BlendMode::Normal | photocraft_color::BlendMode::PassThrough)
+                && photocraft_compose::channel_weights(layer, doc.mode).is_none()
+                && !photocraft_compose::blend_if_active(layer, doc.mode) =>
+        {
+            Some(layer)
+        }
+        _ => None,
+    }
+}
+
 pub(crate) fn file_name(path: &str) -> String {
     path.rsplit(['/', '\\']).next().unwrap_or(path).to_string()
 }
