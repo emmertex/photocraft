@@ -255,9 +255,7 @@ impl Headless {
                     Some(file_cmds::InPlaceSave::Layered) if !file_cmds::holds_at(&doc, p) => {
                         let lost = file_cmds::losses_at(&doc, p);
                         let why = if lost.is_empty() { String::new() } else { format!(" (it can't keep: {})", lost.join("; ")) };
-                        return Err(AutomationError::BadRequest(format!(
-                            "pass `path`: `{p}` can't hold the whole document, so it was left unchanged{why}"
-                        )));
+                        return Err(AutomationError::BadRequest(format!("pass `path`: `{p}` can't hold the whole document, so it was left unchanged{why}")));
                     }
                     Some(file_cmds::InPlaceSave::Flat) if flattens && !flatten => {
                         return Err(AutomationError::BadRequest(format!(

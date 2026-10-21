@@ -97,8 +97,8 @@ pub mod filter_dialog;
 mod filter_preview_ui;
 #[cfg(not(target_arch = "wasm32"))]
 mod filter_preview_worker;
-pub mod flick_pan;
 pub mod flatten_save_ui;
+pub mod flick_pan;
 mod font_preview;
 pub mod frame_tool;
 pub mod gallery_ui;
@@ -1955,7 +1955,9 @@ impl PhotocraftApp {
                 InPlacePlan::Write { path, tiff_layers } => (path, Some(tiff_layers)),
                 InPlacePlan::Flatten { path } if flatten => (path, Some(false)),
                 InPlacePlan::Flatten { path } => {
-                    return Err(format!("saving `{path}` flattens the document's layers into it: pass `flatten: true` to confirm, or `path` to save elsewhere"));
+                    return Err(format!(
+                        "saving `{path}` flattens the document's layers into it: pass `flatten: true` to confirm, or `path` to save elsewhere"
+                    ));
                 }
                 InPlacePlan::Lossy { .. } | InPlacePlan::SaveAs => {
                     return Err("pass `path`: a save without one writes back only to the document's own file in a format it can write (PSD, PSB, .pcraft, OpenRaster when it holds everything, TIFF, JPEG, PNG, WebP)".into());
