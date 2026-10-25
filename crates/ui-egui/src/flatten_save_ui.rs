@@ -62,8 +62,8 @@ pub fn answer(app: &mut PhotocraftApp, ctx: &egui::Context, answer: Answer) {
         }
         // Another app changed the file since it was opened or saved: ask first (#6596).
         Answer::Flatten => app.with_document(p.doc, |app| {
-            crate::disk_change_prompt::intercept(app, p.doc, &p.path, false)
-                .unwrap_or_else(|| app.save_in_place(p.path.clone(), crate::FormatChoices::default()))
+            crate::disk_change_prompt::intercept(app, p.doc, &p.path, false, crate::FormatChoices::default())
+                .unwrap_or_else(|| app.save_back(p.path.clone(), crate::FormatChoices::default()))
         }),
         Answer::SaveAs => app.with_document(p.doc, |app| app.save_as(None)),
     };
@@ -74,8 +74,8 @@ pub fn answer(app: &mut PhotocraftApp, ctx: &egui::Context, answer: Answer) {
             app.ui.status_error = true;
         }
         // A finished write may release the close prompt; a background save does that when it
-        // ends (`jobs_ui`), and Save As once its dialog is answered.
-        Ok(r) if answer == Answer::Flatten && r.get("pending").is_none() => crate::discard_ui::saved_document(app, ctx, p.doc),
+        // ends (`jobs_ui`), JPEG Options once answered, and Save As once its dialog is answered.
+        Ok(r) if answer == Answer::Flatten && r.get("pending").is_none() && app.jpeg_options.is_none() => crate::discard_ui::saved_document(app, ctx, p.doc),
         Ok(_) => {}
     }
 }
@@ -85,7 +85,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
     let name = crate::file_open::display_name(&p.path);
     let format = format_name(&p.path);
     let (mut flatten, mut save_as, mut cancel) = (false, false, false);
-    let modal = egui::Modal::new(egui::Id::new("flatten-save")).show(ctx, |ui| {
+    let modal = egui::Modal::new(egui::Id::unique("flatten-save")).show(ctx, |ui| {
         ui.set_max_width(440.0);
         ui.label(egui::RichText::new(tl!("Save Flattened?")).font(crate::theme::semibold(15.0)));
         ui.add_space(4.0);
